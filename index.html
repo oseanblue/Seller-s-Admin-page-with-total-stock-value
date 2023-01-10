@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" integrity="sha384-JcKb8q3iqJ61gNV9KGb8thSsNjpSL0n8PARn9HuZOnIxN0hoP+VmmDGMN5t9UJ0Z" crossorigin="anonymous">
+    <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+  </head>
+  <body>
+    <div class="container">
+      <h1>Product List</h1>
+      <form>
+        <div class="form-group">
+          <label for="productName">Product Name</label>
+          <input type="text" class="form-control" id="productName" placeholder="Enter product name">
+        </div>
+        <div class="form-group">
+          <label for="productAmount">Product Amount</label>
+          <input type="number" class="form-control" id="productAmount" placeholder="Enter product amount">
+        </div>
+        <button type="button" class="btn btn-primary" id="addProductButton">Add Product</button>
+      </form>
+      <br>
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Product Name</th>
+            <th>Product Amount</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="productList">
+        </tbody>
+      </table>
+      <h3 id="totalAmount">Total Amount: 0</h3>
+    </div>
+    
+    <script>
+      const API_URL = 'https://crudcrud.com/api/a45d33c276ed4ec59eb4bd219465c93a/products';
+      
+      // An array to store the products
+      let products = [];
+
+      // A variable to store the total amount
+      let totalAmount = 0;
+      
+      //remove product from products array and update the total amount
+      const removeProduct = (productId) => {
+        axios.delete(`${API_URL}/${productId}`)
+        .then((res) => {
+          console.log(res);
+          const removedProduct = products.find(p => p.id == productId);
+          totalAmount -= removedProduct.productAmount;
+          products = products.filter(p => p.id != productId);
+          updateProductList();
+          updateTotalAmount();
+        })
+        .catch((err) => {
+          console.log(err);
+        });
+      };
+
+      // Add a product to the products array and update the total amount
+      const addProduct = (productId, productName, productAmount) => {
+        products.push({id: productId, productName, productAmount});
+        totalAmount += productAmount;
+        updateProductList();
+        updateTotalAmount();
+      };
+      
+      // Update the product list table on the page
+      const updateProductList = () => {
+        let productListHtml = "";
+        products.forEach((product) => {
+          productListHtml += `<tr><td>${product.productName}</td><td>${product.productAmount}</td><td><button class="btn btn-danger delete-button" data-productid="${product.id}">Delete</button></td></tr>`;
+        });
+        document.getElementById("productList").innerHTML = productListHtml;
+        
+        // add click event listener to new delete buttons
+        const deleteButtons = document.querySelectorAll('.delete-button');
+        deleteButtons.forEach( button => {
+          button.addEventListener('click', (e) => {
+            const productId = e.target.getAttribute('data-productid');
+            removeProduct(productId);
+          });
+        });
+      };
+      
+      // Update the total amount on the page
+      const updateTotalAmount = () => {
+        document.getElementById("totalAmount").innerHTML = `Total Amount: ${totalAmount}`;
+      };
+      
+      // Get the product name and amount from the form and add the product
+      document.getElementById("addProductButton").addEventListener("click", () => {
+        const productName = document.getElementById("productName").value;
+        const productAmount = parseInt(document.getElementById("productAmount").value);
+        axios.post(API_URL, {productName, productAmount})
+        .then((res) => {
+          console.log(res);
+          addProduct(res.data._id, productName, productAmount);
+        })
+        .catch((err) => {
+          console.log(err);
+        });
+        document.getElementById("productName").value = "";
+        document.getElementById("productAmount").value = "";
+      });
+      
+      // Retrieve the products from the API and add them to the products array
+      axios.get(API_URL)
+      .then((res) => {
+        products = res.data;
+        products.forEach( (product) => {
+          addProduct(product._id, product.productName, product.productAmount);
+        });
+      })
+      .catch((err) => {
+        console.log(err);
+      });
+    </script>
+  </body>
+</html>
+
